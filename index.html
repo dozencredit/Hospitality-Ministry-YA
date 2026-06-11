@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>YA Hospitality - Disponibilidad</title>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Dancing+Script:wght@700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #1a1a2e;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 20px;
+    font-family: 'Anton', Impact, 'Arial Black', sans-serif;
+  }
+  .controls {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 18px;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .ctrl-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255,255,255,0.12);
+    border-radius: 10px;
+    padding: 8px 14px;
+    color: white;
+    font-size: 13px;
+    font-family: Arial, sans-serif;
+    font-weight: bold;
+  }
+  .ctrl-group select,
+  .ctrl-group input[type="number"] {
+    background: rgba(255,255,255,0.2);
+    border: none;
+    color: white;
+    font-weight: bold;
+    font-size: 13px;
+    padding: 3px 6px;
+    border-radius: 6px;
+    cursor: pointer;
+    outline: none;
+  }
+  .ctrl-group select option { color: #000; background: #fff; }
+  .btn {
+    padding: 9px 18px;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    font-family: Arial, sans-serif;
+    font-weight: bold;
+    font-size: 13px;
+    transition: opacity 0.15s, transform 0.1s;
+  }
+  .btn:hover { opacity: 0.85; }
+  .btn:active { transform: scale(0.97); }
+  .btn-export { background: linear-gradient(135deg, #00d2ff, #3a47d5); color: white; }
+  .btn-reset  { background: linear-gradient(135deg, #ff6b6b, #ee0979); color: white; }
+  #schedule-wrapper {
+    padding: 32px 32px 24px 32px;
+    border-radius: 14px;
+    max-width: 1100px;
+    width: 100%;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.45);
+    transition: background 0.5s;
+  }
+  .top-row {
+    display: flex;
+    align-items: flex-end;
+    margin-bottom: 0;
+  }
+  .logo-area {
+    width: 260px;
+    flex-shrink: 0;
+    padding-bottom: 2px;
+    text-align: center;
+  }
+  .logo-ya-hosp {
+    font-family: 'Anton', Impact, 'Arial Black', sans-serif;
+    font-size: 46px;
+    font-weight: 900;
+    color: #111;
+    letter-spacing: 1px;
+    line-height: 1.0;
+    text-transform: uppercase;
+  }
+  .logo-script {
+    font-family: 'Dancing Script', 'Brush Script MT', cursive;
+    font-size: 30px;
+    color: #111;
+    margin-top: -4px;
+  }
+  .sub-header-table {
+    flex: 1;
+    border-collapse: collapse;
+  }
+  .sub-header-table td {
+    text-align: center;
+    padding: 9px 4px;
+    font-family: 'Anton', Impact, 'Arial Black', sans-serif;
+    font-size: 16px;
+    letter-spacing: 4px;
+    border: 2px solid #555;
+  }
+  #scheduleTable {
+    width: 100%;
+    border-collapse: collapse;
+    border: 2px solid #111;
+  }
+  #scheduleTable thead th {
+    background: #111;
+    color: #fff;
+    text-align: center;
+    padding: 13px 6px;
+    font-family: 'Anton', Impact, 'Arial Black', sans-serif;
+    font-size: 19px;
+    letter-spacing: 2px;
+    border: 1px solid #333;
+  }
+  #scheduleTable thead th.col-leaders { width: 260px; }
+  td.leader-cell {
+    color: #111;
+    text-align: center;
+    font-family: 'Anton', Impact, 'Arial Black', sans-serif;
+    font-size: 20px;
+    font-weight: 900;
+    letter-spacing: 2px;
+    padding: 10px 4px;
+    border: 1px solid #111;
+    white-space: nowrap;
+    transition: background 0.5s;
+  }
+  td.date-cell {
+    background: #f3f3f3;
+    border: 1px solid #bbb;
+    cursor: pointer;
+    text-align: center;
+    vertical-align: middle;
+    font-size: 30px;
+    height: 52px;
+    user-select: none;
+    transition: background 0.12s, transform 0.08s;
+    min-width: 110px;
+    font-family: Arial, sans-serif;
+  }
+  td.date-cell:hover {
+    background: #e2e2e2;
+    transform: scale(1.04);
+    z-index: 1;
+    position: relative;
+  }
+  td.date-cell.available   { background: #c8f7d3; color: #1a7a30; font-weight: bold; }
+  td.date-cell.unavailable { background: #fdd0d0; color: #c0392b; font-weight: bold; }
+  .legend {
+    display: flex;
+    gap: 14px;
+    margin-top: 14px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .legend-item {
+    font-family: Arial, sans-serif;
+    font-size: 12px;
+    font-weight: bold;
+    background: rgba(0,0,0,0.18);
+    color: #fff;
+    padding: 5px 12px;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  #exportOverlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.55);
+    z-index: 999;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-family: Arial, sans-serif;
+    font-size: 18px;
+    font-weight: bold;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .spinner {
+    width: 44px; height: 44px;
+    border: 5px solid rgba(255,255,255,0.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── Leaders modal ── */
+  #leadersModal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.65);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+  }
+  #leadersModal.open { display: flex; }
+  .modal-box {
+    background: #1e1e3a;
+    border-radius: 14px;
+    padding: 28px 28px 22px;
+    width: 360px;
+    max-width: 95vw;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    box-shadow: 0 16px 48px rgba(0,0,0,0.6);
+  }
+  .modal-title {
+    font-family: 'Anton', Impact, sans-serif;
+    font-size: 20px;
+    color: #fff;
+    letter-spacing: 2px;
+    text-align: center;
+  }
+  .leaders-list {
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 46vh;
+  }
+  .leader-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .leader-row input {
+    flex: 1;
+    background: rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.25);
+    color: #fff;
+    font-family: 'Anton', Impact, sans-serif;
+    font-size: 14px;
+    letter-spacing: 1px;
+    padding: 7px 10px;
+    border-radius: 8px;
+    outline: none;
+    text-transform: uppercase;
+  }
+  .leader-row input:focus { border-color: #7c3aed; }
+  .btn-del {
+    background: rgba(255,80,80,0.2);
+    border: none;
+    color: #ff6b6b;
+    font-size: 16px;
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: background 0.15s;
+  }
+  .btn-del:hover { background: rgba(255,80,80,0.4); }
+  .modal-add-row {
+    display: flex;
+    gap: 8px;
+  }
+  .modal-add-row input {
+    flex: 1;
+    background: rgba(255,255,255,0.08);
+    border: 1px dashed rgba(255,255,255,0.3);
+    color: #fff;
+    font-family: 'Anton', Impact, sans-serif;
+    font-size: 14px;
+    letter-spacing: 1px;
+    padding: 7px 10px;
+    border-radius: 8px;
+    outline: none;
+    text-transform: uppercase;
+  }
+  .modal-add-row input::placeholder { color: rgba(255,255,255,0.35); text-transform: none; font-family: Arial, sans-serif; font-size: 13px; letter-spacing: 0; }
+  .modal-add-row input:focus { border-color: #7c3aed; }
+  .btn-add-leader {
+    background: linear-gradient(135deg,#7c3aed,#c84bdb);
+    border: none;
+    color: #fff;
+    font-size: 20px;
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: opacity 0.15s;
+  }
+  .btn-add-leader:hover { opacity: 0.8; }
+  .modal-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+  }
+  .btn-modal-cancel { background: rgba(255,255,255,0.1); color: #fff; }
+  .btn-modal-save   { background: linear-gradient(135deg,#00d2ff,#3a47d5); color: #fff; }
+  .btn-manage { background: linear-gradient(135deg,#7c3aed,#c84bdb); color: #fff; }
+</style>
+</head>
+<body>
+
+<div id="exportOverlay"><div class="spinner"></div><span>Generando imagen...</span></div>
+
+<!-- Leaders management modal -->
+<div id="leadersModal">
+  <div class="modal-box">
+    <div class="modal-title">EDITAR LIDERES</div>
+    <div class="leaders-list" id="leadersList"></div>
+    <div class="modal-add-row">
+      <input type="text" id="newLeaderInput" placeholder="Nuevo nombre..." maxlength="20">
+      <button class="btn-add-leader" onclick="modalAddLeader()" title="Agregar">+</button>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-modal-cancel" onclick="closeLeadersModal()">Cancelar</button>
+      <button class="btn btn-modal-save" onclick="saveLeaders()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div class="controls" id="controlsBar">
+  <div class="ctrl-group">
+    <span>MES:</span>
+    <select id="monthSelect" onchange="updateSchedule()">
+      <option value="0">Enero</option><option value="1">Febrero</option>
+      <option value="2">Marzo</option><option value="3">Abril</option>
+      <option value="4">Mayo</option><option value="5">Junio</option>
+      <option value="6">Julio</option><option value="7">Agosto</option>
+      <option value="8">Septiembre</option><option value="9">Octubre</option>
+      <option value="10">Noviembre</option><option value="11">Diciembre</option>
+    </select>
+    <input type="number" id="yearInput" value="2026" min="2025" max="2035" onchange="updateSchedule()" style="width:62px;">
+  </div>
+  <div class="ctrl-group">
+    <span>DIA SEMANAL:</span>
+    <select id="daySelect" onchange="updateSchedule()">
+      <option value="0">Domingo</option><option value="1">Lunes</option>
+      <option value="2" selected>Martes</option><option value="3">Miercoles</option>
+      <option value="4">Jueves</option><option value="5">Viernes</option>
+      <option value="6">Sabado</option>
+    </select>
+  </div>
+  <button class="btn btn-manage" onclick="openLeadersModal()">Editar Lideres</button>
+  <button class="btn btn-reset" onclick="resetAll()">Reset</button>
+  <button class="btn btn-export" onclick="exportImage()">Exportar Imagen</button>
+</div>
+
+<div id="schedule-wrapper">
+  <div class="top-row">
+    <div class="logo-area">
+      <div class="logo-ya-hosp">YA HOSPITALITY</div>
+      <div class="logo-script">schedudule</div>
+    </div>
+    <table class="sub-header-table" id="subHeaderTable">
+      <tr>
+        <td colspan="2" id="shLeft">AVAILABILITY</td>
+        <td colspan="3" id="shRight" style="background:#111;color:#fff;">MAY 2026</td>
+      </tr>
+    </table>
+  </div>
+
+  <table id="scheduleTable">
+    <thead>
+      <tr>
+        <th class="col-leaders">LEADERS</th>
+        <th id="thDate0">-</th><th id="thDate1">-</th>
+        <th id="thDate2">-</th><th id="thDate3">-</th><th id="thDate4">-</th>
+      </tr>
+    </thead>
+    <tbody id="scheduleBody"></tbody>
+  </table>
+
+  <div class="legend" id="legendBar">
+    <div class="legend-item">1 click = <strong>&#10004; Disponible</strong></div>
+    <div class="legend-item">2 clicks = <strong>&#10008; No disponible</strong></div>
+    <div class="legend-item">3 clicks = <strong>Limpiar</strong></div>
+  </div>
+</div>
+
+<script>
+  var LEADERS = [
+    'JP','MIGUEL','KIARA','MAFE','JARETH',
+    'KATHERINE','ALLY','MARIE','MASSIEL',
+    'MATTHEW','DAVID','SANTI','MARIANA','AXEL','IVA'
+  ];
+  // Note: LEADERS is reassigned in saveLeaders(), so declared with var (not const)
+
+  var MONTH_ABBR = ['JAN','FEB','MAR','APR','MAY','JUN',
+                    'JUL','AUG','SEP','OCT','NOV','DEC'];
+
+  var THEMES = [
+    { bg:'linear-gradient(105deg,#1a237e 0%,#283593 40%,#3949ab 70%,#5c6bc0 100%)',
+      leader:'linear-gradient(to right,#42a5f5,#1565c0)', shLeft:'#90caf9', shLeftTxt:'#0d47a1', shRight:'#0d47a1' },
+    { bg:'linear-gradient(105deg,#880e4f 0%,#c2185b 40%,#e91e63 70%,#f48fb1 100%)',
+      leader:'linear-gradient(to right,#f06292,#ad1457)', shLeft:'#f8bbd0', shLeftTxt:'#880e4f', shRight:'#4a0030' },
+    { bg:'linear-gradient(105deg,#1b5e20 0%,#2e7d32 40%,#43a047 70%,#a5d6a7 100%)',
+      leader:'linear-gradient(to right,#66bb6a,#1b5e20)', shLeft:'#c8e6c9', shLeftTxt:'#1b5e20', shRight:'#1b5e20' },
+    { bg:'linear-gradient(105deg,#4a148c 0%,#7b1fa2 40%,#ab47bc 70%,#f3e5f5 100%)',
+      leader:'linear-gradient(to right,#ce93d8,#6a1b9a)', shLeft:'#e1bee7', shLeftTxt:'#4a148c', shRight:'#311b92' },
+    { bg:'linear-gradient(105deg,#00c4cc 0%,#00cc88 40%,#52d68a 70%,#7fef7f 100%)',
+      leader:'linear-gradient(to right,#ff4d6d,#c84bdb,#7c3aed)', shLeft:'#c8aa80', shLeftTxt:'#111', shRight:'#111' },
+    { bg:'linear-gradient(105deg,#006064 0%,#0097a7 40%,#00bcd4 70%,#80deea 100%)',
+      leader:'linear-gradient(to right,#ff7043,#f4511e)', shLeft:'#b2ebf2', shLeftTxt:'#004d40', shRight:'#004d40' },
+    { bg:'linear-gradient(105deg,#bf360c 0%,#e64a19 40%,#ff7043 70%,#ffccbc 100%)',
+      leader:'linear-gradient(to right,#ffb74d,#e65100)', shLeft:'#ffe0b2', shLeftTxt:'#bf360c', shRight:'#4e342e' },
+    { bg:'linear-gradient(105deg,#f57f17 0%,#f9a825 40%,#fdd835 70%,#fff59d 100%)',
+      leader:'linear-gradient(to right,#ffee58,#f57f17)', shLeft:'#fff9c4', shLeftTxt:'#e65100', shRight:'#5d4037' },
+    { bg:'linear-gradient(105deg,#3e2723 0%,#795548 40%,#a1887f 70%,#d7ccc8 100%)',
+      leader:'linear-gradient(to right,#bcaaa4,#4e342e)', shLeft:'#d7ccc8', shLeftTxt:'#3e2723', shRight:'#1a237e' },
+    { bg:'linear-gradient(105deg,#212121 0%,#4a148c 40%,#6a1b9a 70%,#ff6f00 100%)',
+      leader:'linear-gradient(to right,#ff6f00,#6a1b9a)', shLeft:'#ffe082', shLeftTxt:'#212121', shRight:'#1a237e' },
+    { bg:'linear-gradient(105deg,#4e0015 0%,#880e4f 40%,#ad1457 70%,#c2185b 100%)',
+      leader:'linear-gradient(to right,#ffd54f,#ff6f00)', shLeft:'#ffe082', shLeftTxt:'#4e0015', shRight:'#1a237e' },
+    { bg:'linear-gradient(105deg,#1b5e20 0%,#b71c1c 40%,#c62828 70%,#ef9a9a 100%)',
+      leader:'linear-gradient(to right,#ef9a9a,#b71c1c)', shLeft:'#c8e6c9', shLeftTxt:'#1b5e20', shRight:'#b71c1c' }
+  ];
+
+  var cellStates = {};
+  var allStates  = {};   // persists marks per month-year-dow key
+  var currentKey = '';
+
+  function stateKey(month, year, dow) {
+    return month + '-' + year + '-' + dow;
+  }
+
+  function getWeekdays(year, month, dow) {
+    var dates = [];
+    var d = new Date(year, month, 1);
+    while (d.getDay() !== dow) d.setDate(d.getDate() + 1);
+    while (d.getMonth() === month) {
+      dates.push(new Date(d));
+      d.setDate(d.getDate() + 7);
+    }
+    return dates;
+  }
+
+  function fmtDate(d, abbr) {
+    return abbr + ' ' + String(d.getDate()).padStart(2, '0');
+  }
+
+  function applyTheme(month) {
+    var t = THEMES[month];
+    document.getElementById('schedule-wrapper').style.background = t.bg;
+    var shL = document.getElementById('shLeft');
+    shL.style.background = t.shLeft;
+    shL.style.color = t.shLeftTxt;
+    var shR = document.getElementById('shRight');
+    shR.style.background = t.shRight;
+    shR.style.color = '#fff';
+    document.querySelectorAll('td.leader-cell').forEach(function(el) {
+      el.style.background = t.leader;
+    });
+  }
+
+  function updateSchedule() {
+    var month = +document.getElementById('monthSelect').value;
+    var year  = +document.getElementById('yearInput').value;
+    var dow   = +document.getElementById('daySelect').value;
+    var abbr  = MONTH_ABBR[month];
+    var dates = getWeekdays(year, month, dow);
+
+    document.getElementById('shRight').textContent = abbr + ' ' + year;
+
+    for (var i = 0; i < 5; i++) {
+      var th = document.getElementById('thDate' + i);
+      th.textContent   = i < dates.length ? fmtDate(dates[i], abbr) : '';
+      th.style.display = i < dates.length ? '' : 'none';
+    }
+
+    var subTds = document.querySelectorAll('#subHeaderTable td');
+    var half   = Math.floor(dates.length / 2);
+    subTds[0].colSpan = half;
+    subTds[1].colSpan = dates.length - half;
+
+    // Restore or create persistent state for this month/year/dow
+    currentKey = stateKey(month, year, dow);
+    if (!allStates[currentKey]) {
+      allStates[currentKey] = {};
+      LEADERS.forEach(function(l) {
+        allStates[currentKey][l] = {};
+        dates.forEach(function(_, i) { allStates[currentKey][l][i] = 0; });
+      });
+    } else {
+      // Make sure any new columns are initialised
+      LEADERS.forEach(function(l) {
+        if (!allStates[currentKey][l]) allStates[currentKey][l] = {};
+        dates.forEach(function(_, i) {
+          if (allStates[currentKey][l][i] === undefined) allStates[currentKey][l][i] = 0;
+        });
+      });
+    }
+    cellStates = allStates[currentKey];
+
+    var tbody = document.getElementById('scheduleBody');
+    tbody.innerHTML = '';
+    LEADERS.forEach(function(leader) {
+      var tr = document.createElement('tr');
+      var ldTd = document.createElement('td');
+      ldTd.className = 'leader-cell';
+      ldTd.textContent = leader;
+      tr.appendChild(ldTd);
+      for (var i = 0; i < 5; i++) {
+        var td = document.createElement('td');
+        td.className = 'date-cell';
+        td.dataset.leader = leader;
+        td.dataset.idx    = i;
+        if (i >= dates.length) {
+          td.style.display = 'none';
+        } else {
+          (function(ldr, idx, cell) {
+            cell.addEventListener('click', function() { handleClick(ldr, idx, cell); });
+          })(leader, i, td);
+        }
+        tr.appendChild(td);
+      }
+      tbody.appendChild(tr);
+    });
+
+    renderAll();
+    applyTheme(month);
+  }
+
+  function handleClick(leader, idx, el) {
+    cellStates[leader][idx] = (cellStates[leader][idx] + 1) % 3;
+    renderCell(leader, idx, el);
+  }
+
+  function renderCell(leader, idx, el) {
+    var s = cellStates[leader][idx];
+    el.className = 'date-cell';
+    if (s === 1) {
+      el.innerHTML = '&#10004;';
+      el.classList.add('available');
+    } else if (s === 2) {
+      el.innerHTML = '&#10008;';
+      el.classList.add('unavailable');
+    } else {
+      el.innerHTML = '';
+    }
+  }
+
+  function renderAll() {
+    document.querySelectorAll('td.date-cell').forEach(function(el) {
+      renderCell(el.dataset.leader, +el.dataset.idx, el);
+    });
+  }
+
+  function resetAll() {
+    LEADERS.forEach(function(l) {
+      Object.keys(cellStates[l] || {}).forEach(function(i) { cellStates[l][i] = 0; });
+    });
+    renderAll();
+  }
+
+  function clearAfterExport() {
+    // Wipe current month's marks once the image is saved
+    delete allStates[currentKey];
+    LEADERS.forEach(function(l) { cellStates[l] = {}; });
+    document.querySelectorAll('td.date-cell').forEach(function(el) {
+      el.className = 'date-cell';
+      el.innerHTML = '';
+    });
+  }
+
+  function exportImage() {
+    var overlay  = document.getElementById('exportOverlay');
+    var legend   = document.getElementById('legendBar');
+    var controls = document.getElementById('controlsBar');
+    overlay.style.display  = 'flex';
+    legend.style.display   = 'none';
+    controls.style.display = 'none';
+    setTimeout(function() {
+      html2canvas(document.getElementById('schedule-wrapper'), {
+        scale: 2.5, useCORS: true, backgroundColor: null, logging: false
+      }).then(function(canvas) {
+        legend.style.display   = 'flex';
+        controls.style.display = 'flex';
+        overlay.style.display  = 'none';
+        var abbr = MONTH_ABBR[+document.getElementById('monthSelect').value].toLowerCase();
+        var yr   = document.getElementById('yearInput').value;
+        var link = document.createElement('a');
+        link.download = 'ya-hospitality-' + abbr + '-' + yr + '.png';
+        link.href     = canvas.toDataURL('image/png');
+        link.click();
+        clearAfterExport();
+      }).catch(function() {
+        legend.style.display   = 'flex';
+        controls.style.display = 'flex';
+        overlay.style.display  = 'none';
+        alert('Error al exportar. Intenta de nuevo.');
+      });
+    }, 150);
+  }
+
+  // ── Leaders modal ──────────────────────────────────────────
+  function openLeadersModal() {
+    var list = document.getElementById('leadersList');
+    list.innerHTML = '';
+    LEADERS.forEach(function(name, idx) {
+      var row = document.createElement('div');
+      row.className = 'leader-row';
+      var inp = document.createElement('input');
+      inp.type = 'text';
+      inp.value = name;
+      inp.maxLength = 20;
+      inp.dataset.idx = idx;
+      inp.addEventListener('input', function() {
+        inp.value = inp.value.toUpperCase();
+      });
+      var del = document.createElement('button');
+      del.className = 'btn-del';
+      del.innerHTML = '&#10005;';
+      del.title = 'Eliminar';
+      del.addEventListener('click', function() { row.remove(); });
+      row.appendChild(inp);
+      row.appendChild(del);
+      list.appendChild(row);
+    });
+    document.getElementById('newLeaderInput').value = '';
+    document.getElementById('leadersModal').classList.add('open');
+  }
+
+  function closeLeadersModal() {
+    document.getElementById('leadersModal').classList.remove('open');
+  }
+
+  function modalAddLeader() {
+    var inp = document.getElementById('newLeaderInput');
+    var name = inp.value.trim().toUpperCase();
+    if (!name) return;
+    var list = document.getElementById('leadersList');
+    var row = document.createElement('div');
+    row.className = 'leader-row';
+    var field = document.createElement('input');
+    field.type = 'text';
+    field.value = name;
+    field.maxLength = 20;
+    field.addEventListener('input', function() { field.value = field.value.toUpperCase(); });
+    var del = document.createElement('button');
+    del.className = 'btn-del';
+    del.innerHTML = '&#10005;';
+    del.addEventListener('click', function() { row.remove(); });
+    row.appendChild(field);
+    row.appendChild(del);
+    list.appendChild(row);
+    inp.value = '';
+    inp.focus();
+    list.scrollTop = list.scrollHeight;
+  }
+
+  function saveLeaders() {
+    var inputs = document.querySelectorAll('#leadersList .leader-row input');
+    var newLeaders = [];
+    inputs.forEach(function(inp) {
+      var v = inp.value.trim().toUpperCase();
+      if (v) newLeaders.push(v);
+    });
+    if (newLeaders.length === 0) return;
+    LEADERS = newLeaders;
+    allStates = {};
+    closeLeadersModal();
+    updateSchedule();
+  }
+
+  // Close modal when clicking backdrop
+  document.getElementById('leadersModal').addEventListener('click', function(e) {
+    if (e.target === this) closeLeadersModal();
+  });
+
+  // Allow Enter key to add leader
+  document.getElementById('newLeaderInput').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') modalAddLeader();
+  });
+
+  (function init() {
+    var today     = new Date();
+    var nextMonth = today.getMonth() + 1;
+    var nextYear  = today.getFullYear();
+    if (nextMonth > 11) { nextMonth = 0; nextYear++; }
+    document.getElementById('monthSelect').value = nextMonth;
+    document.getElementById('yearInput').value   = nextYear;
+    updateSchedule();
+  })();
+</script>
+</body>
+</html>
