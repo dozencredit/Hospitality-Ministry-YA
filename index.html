@@ -214,7 +214,7 @@
     justify-content: center;
   }
   #leadersModal.open { display: flex; }
-  .modal-box {
+  .modal-box	{
     background: #1e1e3a;
     border-radius: 14px;
     padding: 28px 28px 22px;
@@ -318,6 +318,25 @@
   .btn-modal-cancel { background: rgba(255,255,255,0.1); color: #fff; }
   .btn-modal-save   { background: linear-gradient(135deg,#00d2ff,#3a47d5); color: #fff; }
   .btn-manage { background: linear-gradient(135deg,#7c3aed,#c84bdb); color: #fff; }
+  .btn-team-icon {
+    background: rgba(255,255,255,0.18);
+    border: none;
+    color: white;
+    width: 26px;
+    height: 26px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: background 0.15s;
+    padding: 0;
+    line-height: 1;
+  }
+  .btn-team-icon:hover { background: rgba(255,255,255,0.3); }
+  .btn-team-del-icon { color: #ff8080; }
 </style>
 </head>
 <body>
@@ -362,6 +381,12 @@
       <option value="6">Sabado</option>
     </select>
   </div>
+  <div class="ctrl-group">
+    <span>EQUIPO:</span>
+    <select id="teamSelect" onchange="switchTeam()"></select>
+    <button class="btn-team-icon" onclick="addTeam()" title="Nuevo equipo">+</button>
+    <button class="btn-team-icon btn-team-del-icon" onclick="deleteTeam()" title="Eliminar equipo">&#128465;</button>
+  </div>
   <button class="btn btn-manage" onclick="openLeadersModal()">Editar Lideres</button>
   <button class="btn btn-reset" onclick="resetAll()">Reset</button>
   <button class="btn btn-export" onclick="exportImage()">Exportar Imagen</button>
@@ -400,12 +425,71 @@
 </div>
 
 <script>
-  var LEADERS = [
-    'JP','MIGUEL','KIARA','MAFE','JARETH',
-    'KATHERINE','ALLY','MARIE','MASSIEL',
-    'MATTHEW','DAVID','SANTI','MARIANA','AXEL','IVA'
-  ];
-  // Note: LEADERS is reassigned in saveLeaders(), so declared with var (not const)
+  // ── Teams & localStorage ──────────────────────────────────
+  var DEFAULT_TEAMS = {
+    'EQUIPO 1': ['JP','MIGUEL','KIARA','MAFE','JARETH','KATHERINE','ALLY','MARIE','MASSIEL','MATTHEW','DAVID','SANTI','MARIANA','AXEL','IVA'],
+    'EQUIPO 2': []
+  };
+
+  var TEAMS = {};
+  try {
+    var _stored = localStorage.getItem('ya_hosp_teams');
+    TEAMS = _stored ? JSON.parse(_stored) : JSON.parse(JSON.stringify(DEFAULT_TEAMS));
+  } catch(e) { TEAMS = JSON.parse(JSON.stringify(DEFAULT_TEAMS)); }
+
+  var currentTeam = Object.keys(TEAMS)[0] || 'EQUIPO 1';
+  var LEADERS = TEAMS[currentTeam] || [];
+
+  function saveTeamsToStorage() {
+    try { localStorage.setItem('ya_hosp_teams', JSON.stringify(TEAMS)); } catch(e) {}
+  }
+
+  function renderTeamSelect() {
+    var sel = document.getElementById('teamSelect');
+    sel.innerHTML = '';
+    Object.keys(TEAMS).forEach(function(name) {
+      var opt = document.createElement('option');
+      opt.value = name;
+      opt.textContent = name;
+      if (name === currentTeam) opt.selected = true;
+      sel.appendChild(opt);
+    });
+  }
+
+  function switchTeam() {
+    currentTeam = document.getElementById('teamSelect').value;
+    LEADERS = TEAMS[currentTeam];
+    allStates = {};
+    updateSchedule();
+  }
+
+  function addTeam() {
+    var name = prompt('Nombre del nuevo equipo:');
+    if (!name) return;
+    name = name.trim().toUpperCase();
+    if (!name) return;
+    if (TEAMS[name]) { alert('Ese equipo ya existe.'); return; }
+    TEAMS[name] = [];
+    saveTeamsToStorage();
+    currentTeam = name;
+    LEADERS = TEAMS[currentTeam];
+    renderTeamSelect();
+    allStates = {};
+    updateSchedule();
+  }
+
+  function deleteTeam() {
+    var keys = Object.keys(TEAMS);
+    if (keys.length <= 1) { alert('Debe haber al menos un equipo.'); return; }
+    if (!confirm('¿Eliminar el equipo "' + currentTeam + '"?')) return;
+    delet TDmS[currentTeam];
+    saveTeamsToStorage();
+    currentTeam = Object.keys(TEAMS)[0];
+    LEADERS = TEAMS[currentTeam];
+    renderTeamSelect();
+    allStates = {};
+    updateSchedule();
+  }
 
   var MONTH_ABBR = ['JAN','FEB','MAR','APR','MAY','JUN',
                     'JUL','AUG','SEP','OCT','NOV','DEC'];
@@ -442,7 +526,7 @@
   var currentKey = '';
 
   function stateKey(month, year, dow) {
-    return month + '-' + year + '-' + dow;
+    return currentTeam + '-' + month + '-' + year + '-' + dow;
   }
 
   function getWeekdays(year, month, dow) {
@@ -461,7 +545,7 @@
   }
 
   function applyTheme(month) {
-    var t = THEMES[month];
+    var t = THMES[month];
     document.getElementById('schedule-wrapper').style.background = t.bg;
     var shL = document.getElementById('shLeft');
     shL.style.background = t.shLeft;
@@ -616,6 +700,7 @@
 
   // ── Leaders modal ──────────────────────────────────────────
   function openLeadersModal() {
+    document.querySelector('#leadersModal .modal-title').textContent = 'LIDERES — ' + currentTeam;
     var list = document.getElementById('leadersList');
     list.innerHTML = '';
     LEADERS.forEach(function(name, idx) {
@@ -678,7 +763,9 @@
       if (v) newLeaders.push(v);
     });
     if (newLeaders.length === 0) return;
+    TEAMS[currentTeam] = newLeaders;
     LEADERS = newLeaders;
+    saveTeamsToStorage();
     allStates = {};
     closeLeadersModal();
     updateSchedule();
@@ -695,6 +782,7 @@
   });
 
   (function init() {
+    renderTeamSelect();
     var today     = new Date();
     var nextMonth = today.getMonth() + 1;
     var nextYear  = today.getFullYear();
